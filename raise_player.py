@@ -23,12 +23,13 @@ class Group18Player(BasePokerPlayer):
     card_tensor_size = len(ranks) + len(suits)
     # number of chips in the poker pot is a multiple of this unit
     smallest_number_of_chips = 10
-    # check, see, raise, fold (is see needed?)
-    actions_available = 4
+    # check, raise, fold (is see needed?)
+    actions_available = 3
 
     def __init__(self):
         nonlocal card_tensor_size, actions_available
 
+        super().__init__()
         # Details are included in google doc
         self.model = Sequential()
 
