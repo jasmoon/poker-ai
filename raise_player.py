@@ -24,21 +24,19 @@ class Group18Player(BasePokerPlayer):
     # number of chips in the poker pot is a multiple of this unit
     smallest_number_of_chips = 10
     # check, raise, fold (is see needed?)
-    actions_available = 3
+    actions_available = 4
 
     def __init__(self):
-        nonlocal card_tensor_size, actions_available
-
         super().__init__()
         # Details are included in google doc
         self.model = Sequential()
 
-        self.model.add(Conv2D(16, (5, 5), strides=(1, 1), activation='relu', input_shape=(card_tensor_size, card_tensor_size, 17)))
+        self.model.add(Conv2D(16, (5, 5), strides=(1, 1), activation='relu', input_shape=(Group18Player.card_tensor_size, Group18Player.card_tensor_size, 16)))
         self.model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
 
         self.model.add(Flatten())
         self.model.add(Dense(100, activation='relu'))
-        self.model.add(Dense(actions_available, activation='softmax'))
+        self.model.add(Dense(Group18Player.actions_available, activation='softmax'))
 
         self.model.compile(optimizer='adam', loss='categorical_crossentropy',  metrics=['accuracy'])
 
