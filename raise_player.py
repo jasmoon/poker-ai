@@ -27,7 +27,6 @@ class Group18Player(BasePokerPlayer):
     actions_available = 4
 
     def __init__(self):
-        super().__init__()
         # Details are included in google doc
         self.model = Sequential()
 
