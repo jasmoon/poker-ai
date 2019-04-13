@@ -14,7 +14,8 @@ class Group18Player(BasePokerPlayer):
     ranks = {'A': 12, 'K': 11, 'Q': 10, 'J': 9, 'T': 8, '9': 7, '8': 6, '7': 5, '6': 4, '5': 3, '4': 2, '3': 1, '2': 0}
     y = 0.9
     e = 0.1
-    max_replay_size = 40
+    raise_amplifier = 1.1
+    max_replay_size = 45
     my_starting_stack = 10000
     opp_starting_stack = 10000
 
@@ -35,6 +36,8 @@ class Group18Player(BasePokerPlayer):
             d2 = Dense(128,activation='relu')(x2)
             d2 = Flatten()(d2)
             x = concatenate([d1,d2,x3])
+            x = Dense(128)(x)
+            x = Dense(128)(x)
             x = Dense(128)(x)
             x = Dense(32)(x)
             out = Dense(3)(x)
@@ -108,8 +111,8 @@ class Group18Player(BasePokerPlayer):
                     del self.prev_action_state[0]
                     del self.prev_reward_state[0]
 
-            if self.vvh > 2000:
-                save_weights()
+            # if self.vvh > 2000:
+            save_weights()
 
         # Maybe don't modularise this, the program takes up more ram when this is modularised
         def pick_action():
@@ -232,11 +235,30 @@ class Group18Player(BasePokerPlayer):
             else:
                 return -(winners[0]['stack'] - Group18Player.opp_starting_stack)
 
-        reward = get_real_reward()
+        reward = int(get_real_reward())
+        self.target_Q = self.model.predict(self.sb_features)
 
-        # print("TARGET Q: {}\t SB_FEATURES: {}".format(self.target_Q, self.sb_features))
-        self.target_Q = self.model.predict(self.sb_features)    # need to revise?
-        self.target_Q[0, self.action_sb] = int(reward)
+        # If the AI folded, we check if FOLD outputs the greatest reward based on the current model
+        if self.action_sb == 0:
+            predicted_move = np.argmax(self.cur_Q_values)
+            # If FOLD does not output the greatest reward, we punish the AI for FOLDING
+            if predicted_move != 0:
+                self.target_Q[0, 0] = reward
+            # Else we take it that it is the best move
+        else:
+            self.target_Q[0, 0] = -reward
+            self.target_Q[0, self.action_sb] = reward
+            # If we lost the game, we punish the AI for CALL & RAISE and reward for fold
+            if reward < 0:
+                if self.action_sb == 1:
+                    self.target_Q[0, 2] = Group18Player.raise_amplifier * reward
+                else:
+                    self.target_Q[0, 1] = reward / Group18Player.raise_amplifier
+            # Else, we punish the AI for fold, and reward for CALL & RAISE
+            else:
+                # Note that round must have ended with a check
+                self.target_Q[0, 2] = Group18Player.raise_amplifier * reward
+
         self.prev_action_state.append(self.sb_features)
         self.prev_reward_state.append(self.target_Q)
 
