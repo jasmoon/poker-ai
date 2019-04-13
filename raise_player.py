@@ -37,14 +37,14 @@ class Group18Player(BasePokerPlayer):
             d2 = Flatten()(d2)
             x = concatenate([d1,d2,x3])
             x = Dense(128)(x)
-            x = Dense(128)(x)
-            x = Dense(128)(x)
+            # x = Dense(128)(x)
+            # x = Dense(128)(x)
             x = Dense(32)(x)
             out = Dense(3)(x)
 
             model = Model(inputs=[input_cards, input_actions,input_position], outputs=out)
-            # if self.vvh == 0:
-            #    model.load_weights('setup/initial_weights.h5', by_name=True)
+            if self.vvh == 0:
+                model.load_weights('setup/initial_weights.h5', by_name=True)
 
             model.compile(optimizer='rmsprop', loss='mse')
 
