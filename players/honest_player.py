@@ -15,6 +15,7 @@ class SmartHonestPlayer(BasePokerPlayer):
             hole_card=gen_cards(hole_card),
             community_card=gen_cards(community_card)
         )
+
         if win_rate >= 1.6 / self.nb_player and len(valid_actions) == 3:
             roll = np.random.randint(2)
             if roll == 1:
