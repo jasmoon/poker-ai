@@ -237,15 +237,20 @@ class Group18Player(BasePokerPlayer):
 
         reward = int(get_real_reward())
         self.target_Q = self.model.predict(self.sb_features)
+        train = False
 
         # If the AI folded, we check if FOLD outputs the greatest reward based on the current model
         if self.action_sb == 0:
             predicted_move = np.argmax(self.cur_Q_values)
             # If FOLD does not output the greatest reward, we punish the AI for FOLDING
             if predicted_move != 0:
+                train = True
                 self.target_Q[0, 0] = reward
-            # Else we take it that it is the best move
+                self.target_Q[0, 1] = -reward
+                self.target_Q[0, 2] = -reward
+            # Else we treat them as appropriate heuristic values and dun change the reward vector
         else:
+            train = True
             self.target_Q[0, 0] = -reward
             self.target_Q[0, self.action_sb] = reward
             # If we lost the game, we punish the AI for CALL & RAISE and reward for fold
@@ -259,15 +264,16 @@ class Group18Player(BasePokerPlayer):
                 # Note that round must have ended with a check
                 self.target_Q[0, 2] = Group18Player.raise_amplifier * reward
 
-        self.prev_action_state.append(self.sb_features)
-        self.prev_reward_state.append(self.target_Q)
+        if train:
+            self.prev_action_state.append(self.sb_features)
+            self.prev_reward_state.append(self.target_Q)
 
-        if len(self.prev_action_state) > Group18Player.max_replay_size:
-            del self.prev_action_state[0]
-            del self.prev_reward_state[0]
+            if len(self.prev_action_state) > Group18Player.max_replay_size:
+                del self.prev_action_state[0]
+                del self.prev_reward_state[0]
 
-        for ev in range(len(self.prev_action_state)):
-            self.model.fit(self.prev_action_state[ev], self.prev_reward_state[ev], verbose=0)
+            for ev in range(len(self.prev_action_state)):
+                self.model.fit(self.prev_action_state[ev], self.prev_reward_state[ev], verbose=0)
 
 
 def setup_ai():
