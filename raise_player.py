@@ -1,5 +1,6 @@
 import datetime
 import numpy as np
+from keras import initializers
 from keras.layers import Input, Dense, Conv2D,concatenate,Flatten
 from keras.models import Model
 
@@ -15,9 +16,10 @@ class Group18Player(BasePokerPlayer):
     y = 0.9
     e = 0.1
     raise_amplifier = 1.1
-    max_replay_size = 45
+    max_replay_size = 30
     my_starting_stack = 10000
     opp_starting_stack = 10000
+    starting_stack = 10000
 
     def __init__(self):
 
@@ -37,15 +39,38 @@ class Group18Player(BasePokerPlayer):
             d2 = Flatten()(d2)
             x = concatenate([d1,d2,x3])
             x = Dense(128)(x)
-            # x = Dense(128)(x)
-            # x = Dense(128)(x)
+            x = Dense(128)(x)
             x = Dense(32)(x)
             out = Dense(3)(x)
 
             model = Model(inputs=[input_cards, input_actions,input_position], outputs=out)
             if self.vvh == 0:
-                model.load_weights('setup/initial_weights.h5', by_name=True)
+                model.load_weights('setup/training_weights.h5', by_name=True)
 
+            model.compile(optimizer='rmsprop', loss='mse')
+
+            return model
+
+        def keras_model_random_initialise():
+            input_cards = Input(shape=(4,13,4), name="cards_input")
+            input_actions = Input(shape=(2,6,4), name="actions_input")
+            input_position = Input(shape=(1,),name="position_input")
+
+            x1 = Conv2D(32,(2,2),activation='relu', kernel_initializer="random_uniform")(input_cards)
+            x2 = Conv2D(32,(2,2),activation='relu', kernel_initializer="random_uniform")(input_actions)
+            x3 = Dense(1,activation='relu', kernel_initializer="random_uniform")(input_position)
+
+            d1 = Dense(128,activation='relu', kernel_initializer="random_uniform")(x1)
+            d1 = Flatten()(d1)
+            d2 = Dense(128,activation='relu', kernel_initializer="random_uniform")(x2)
+            d2 = Flatten()(d2)
+            x = concatenate([d1,d2,x3])
+            x = Dense(128, kernel_initializer="random_uniform")(x)
+            x = Dense(128, kernel_initializer="random_uniform")(x)
+            x = Dense(32, kernel_initializer="random_uniform")(x)
+            out = Dense(3)(x)
+
+            model = Model(inputs=[input_cards, input_actions,input_position], outputs=out)
             model.compile(optimizer='rmsprop', loss='mse')
 
             return model
@@ -58,7 +83,7 @@ class Group18Player(BasePokerPlayer):
         self.prev_action_state = []
         self.prev_reward_state = []
         self.has_played = False
-        self.model = keras_model()
+        self.model = keras_model_random_initialise()
         self.target_Q = [[0, 0, 0]]
 
     def declare_action(self, valid_actions, hole_card, round_state):
@@ -161,7 +186,7 @@ class Group18Player(BasePokerPlayer):
         # self.my_cards =  hole_card
         # self.community_card = round_state['community_card']
 
-        starting_stack = round_state['seats'][round_state['next_player']]['stack']
+        # starting_stack = round_state['seats'][round_state['next_player']]['stack']
         # print("starting stack is")
         # print(starting_stack)
 
@@ -170,22 +195,22 @@ class Group18Player(BasePokerPlayer):
             self.target_Q = self.cur_Q_values
             #self.old_action = self.action_sb
 
-        preflop_actions = convert_to_image_grid(starting_stack, round_state, 'preflop')
+        preflop_actions = convert_to_image_grid(Group18Player.starting_stack, round_state, 'preflop')
 
         if round_state['street'] == 'flop':
             flop = round_state['community_card']
             flop_cards_img = get_street_grid(flop)
-            flop_actions = convert_to_image_grid(starting_stack, round_state, 'flop')
+            flop_actions = convert_to_image_grid(Group18Player.starting_stack, round_state, 'flop')
 
         if round_state['street'] == 'turn':
             turn = round_state['community_card'][3]
             turn_cards_img = get_street_grid([turn])
-            turn_actions = convert_to_image_grid(starting_stack, round_state, 'turn')
+            turn_actions = convert_to_image_grid(Group18Player.starting_stack, round_state, 'turn')
 
         if round_state['street'] == 'river':
             river = round_state['community_card'][4]
             river_cards_img = get_street_grid([river])
-            river_actions = convert_to_image_grid(starting_stack, round_state, 'river')
+            river_actions = convert_to_image_grid(Group18Player.starting_stack, round_state, 'river')
 
         # Form action features
         actions_feature = np.stack([preflop_actions,flop_actions,turn_actions,river_actions],axis=2).reshape((1,2,6,4))
@@ -237,43 +262,20 @@ class Group18Player(BasePokerPlayer):
 
         reward = int(get_real_reward())
         self.target_Q = self.model.predict(self.sb_features)
-        train = False
-
-        # If the AI folded, we check if FOLD outputs the greatest reward based on the current model
         if self.action_sb == 0:
-            predicted_move = np.argmax(self.cur_Q_values)
-            # If FOLD does not output the greatest reward, we punish the AI for FOLDING
-            if predicted_move != 0:
-                train = True
-                self.target_Q[0, 0] = reward
-                self.target_Q[0, 1] = -reward
-                self.target_Q[0, 2] = -reward
-            # Else we treat them as appropriate heuristic values and dun change the reward vector
+            self.target_Q[0, self.action_sb] = 0
         else:
-            train = True
-            self.target_Q[0, 0] = -reward
-            self.target_Q[0, self.action_sb] = reward
-            # If we lost the game, we punish the AI for CALL & RAISE and reward for fold
-            if reward < 0:
-                if self.action_sb == 1:
-                    self.target_Q[0, 2] = Group18Player.raise_amplifier * reward
-                else:
-                    self.target_Q[0, 1] = reward / Group18Player.raise_amplifier
-            # Else, we punish the AI for fold, and reward for CALL & RAISE
-            else:
-                # Note that round must have ended with a check
-                self.target_Q[0, 2] = Group18Player.raise_amplifier * reward
+            self.target_Q[0, self.action_sb] = int(reward)
+        self.prev_action_state.append(self.sb_features)
+        self.prev_reward_state.append(self.target_Q)
 
-        if train:
-            self.prev_action_state.append(self.sb_features)
-            self.prev_reward_state.append(self.target_Q)
+        if len(self.prev_action_state) > Group18Player.max_replay_size:
+            del self.prev_action_state[0]
+            del self.prev_reward_state[0]
 
-            if len(self.prev_action_state) > Group18Player.max_replay_size:
-                del self.prev_action_state[0]
-                del self.prev_reward_state[0]
+        for ev in range(len(self.prev_action_state)):
+            self.model.fit(self.prev_action_state[ev], self.prev_reward_state[ev], verbose=0)
 
-            for ev in range(len(self.prev_action_state)):
-                self.model.fit(self.prev_action_state[ev], self.prev_reward_state[ev], verbose=0)
 
 
 def setup_ai():
