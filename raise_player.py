@@ -15,7 +15,6 @@ class Group18Player(BasePokerPlayer):
     ranks = {'A': 12, 'K': 11, 'Q': 10, 'J': 9, 'T': 8, '9': 7, '8': 6, '7': 5, '6': 4, '5': 3, '4': 2, '3': 1, '2': 0}
     y = 0.9
     e = 0.1
-    raise_amplifier = 1.1
     max_replay_size = 30
     my_starting_stack = 10000
     opp_starting_stack = 10000
@@ -38,6 +37,8 @@ class Group18Player(BasePokerPlayer):
             d2 = Dense(128,activation='relu')(x2)
             d2 = Flatten()(d2)
             x = concatenate([d1,d2,x3])
+            x = Dense(128)(x)
+            x = Dense(128)(x)
             x = Dense(128)(x)
             x = Dense(128)(x)
             x = Dense(32)(x)
@@ -67,6 +68,8 @@ class Group18Player(BasePokerPlayer):
             x = concatenate([d1,d2,x3])
             x = Dense(128, kernel_initializer="random_uniform")(x)
             x = Dense(128, kernel_initializer="random_uniform")(x)
+            x = Dense(128, kernel_initializer="random_uniform")(x)
+            x = Dense(128, kernel_initializer="random_uniform")(x)
             x = Dense(32, kernel_initializer="random_uniform")(x)
             out = Dense(3)(x)
 
@@ -80,7 +83,7 @@ class Group18Player(BasePokerPlayer):
         # self.table = {}
         # self.my_cards = []
         self.sb_features = None
-        self.prev_action_state = []
+        self.prev_round_features = []
         self.prev_reward_state = []
         self.has_played = False
         self.model = keras_model_random_initialise()
@@ -130,10 +133,10 @@ class Group18Player(BasePokerPlayer):
                 self.vvh = self.vvh + 1
                 # new_name = 'my_model_weights'
                 # model.fit(self.old_state,self.target_Q,verbose=0)
-                self.prev_action_state.append(self.old_state)
+                self.prev_round_features.append(self.old_state)
                 self.prev_reward_state.append(self.target_Q)
-                if len(self.prev_action_state) > Group18Player.max_replay_size:
-                    del self.prev_action_state[0]
+                if len(self.prev_round_features) > Group18Player.max_replay_size:
+                    del self.prev_round_features[0]
                     del self.prev_reward_state[0]
 
             # if self.vvh > 2000:
@@ -171,20 +174,10 @@ class Group18Player(BasePokerPlayer):
         turn_actions = np.zeros((2,6))
         river_actions = np.ones((2,6))
 
-
-        # print(round_state)
-
         if(round_state['next_player'] == round_state['small_blind_pos']):
             sb_position = 1
         else:
             sb_position = 0
-
-
-        # print("sb pos")
-        # print(sb_position)
-
-        # self.my_cards =  hole_card
-        # self.community_card = round_state['community_card']
 
         # starting_stack = round_state['seats'][round_state['next_player']]['stack']
         # print("starting stack is")
@@ -232,8 +225,8 @@ class Group18Player(BasePokerPlayer):
 
         self.has_played = True
 
-        for ve in range(len(self.prev_action_state)):
-            self.model.fit(self.prev_action_state[ve], self.prev_reward_state[ve], verbose=0)
+        for ve in range(len(self.prev_round_features)):
+            self.model.fit(self.prev_round_features[ve], self.prev_reward_state[ve], verbose=0)
 
         return pick_action()
 
@@ -263,18 +256,18 @@ class Group18Player(BasePokerPlayer):
         reward = int(get_real_reward())
         self.target_Q = self.model.predict(self.sb_features)
         if self.action_sb == 0:
-            self.target_Q[0, self.action_sb] = 0
+            self.target_Q[0, self.action_sb] = reward / Group18Player.starting_stack
         else:
-            self.target_Q[0, self.action_sb] = int(reward)
-        self.prev_action_state.append(self.sb_features)
+            self.target_Q[0, self.action_sb] = reward
+        self.prev_round_features.append(self.sb_features)
         self.prev_reward_state.append(self.target_Q)
 
-        if len(self.prev_action_state) > Group18Player.max_replay_size:
-            del self.prev_action_state[0]
+        if len(self.prev_round_features) > Group18Player.max_replay_size:
+            del self.prev_round_features[0]
             del self.prev_reward_state[0]
 
-        for ev in range(len(self.prev_action_state)):
-            self.model.fit(self.prev_action_state[ev], self.prev_reward_state[ev], verbose=0)
+        for ev in range(len(self.prev_round_features)):
+            self.model.fit(self.prev_round_features[ev], self.prev_reward_state[ev], verbose=0)
 
 
 
