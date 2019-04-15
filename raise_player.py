@@ -14,7 +14,7 @@ class Group18Player(BasePokerPlayer):
     suits = {'S': 0, 'H': 1, 'D': 2, 'C': 3}
     ranks = {'A': 12, 'K': 11, 'Q': 10, 'J': 9, 'T': 8, '9': 7, '8': 6, '7': 5, '6': 4, '5': 3, '4': 2, '3': 1, '2': 0}
     y = 0.9
-    e = 0.1
+    e = 1 - y
     max_replay_size = 30
     my_starting_stack = 10000
     opp_starting_stack = 10000
@@ -157,7 +157,7 @@ class Group18Player(BasePokerPlayer):
 
         def save_weights():
             # new_name = "setup/" + datetime.datetime.now().strftime("%d-%m_%H:%M:%S_") + str(self.vvh) + '.h5'
-            new_name = "setup/training_weights" + '.h5'
+            new_name = "setup/training_weights2" + '.h5'
             self.model.save_weights(new_name)
 
         #####################################################################
@@ -256,9 +256,15 @@ class Group18Player(BasePokerPlayer):
         reward = int(get_real_reward())
         self.target_Q = self.model.predict(self.sb_features)
         if self.action_sb == 0:
-            self.target_Q[0, self.action_sb] = reward / Group18Player.starting_stack
+            # If the best move is not FOLD, we punish AI severely
+            if np.argmax(self.target_Q) != 0:
+                self.target_Q[0, self.action_sb] = reward * Group18Player.y
+            # Else we reward it slightly
+            else:
+                self.target_Q[0, self.action_sb] = 0
         else:
             self.target_Q[0, self.action_sb] = reward
+
         self.prev_round_features.append(self.sb_features)
         self.prev_reward_state.append(self.target_Q)
 
