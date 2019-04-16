@@ -47,7 +47,7 @@ class Group18Player(BasePokerPlayer):
 
             model = Model(inputs=[input_cards, input_actions,input_position], outputs=out)
             if self.vvh == 0:
-                model.load_weights('add4max30_2000_smarthonest.h5', by_name=True)
+                model.load_weights('Group18.h5', by_name=True)
 
             model.compile(optimizer='rmsprop', loss='mse')
 
@@ -142,7 +142,7 @@ class Group18Player(BasePokerPlayer):
                     del self.prev_reward_state[0]
 
             # if self.vvh > 2000:
-            save_weights()
+            # save_weights()
 
         # Maybe don't modularise this, the program takes up more ram when this is modularised
         def pick_action():
