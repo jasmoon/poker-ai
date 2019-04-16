@@ -15,7 +15,7 @@ class Group18Player(BasePokerPlayer):
     ranks = {'A': 12, 'K': 11, 'Q': 10, 'J': 9, 'T': 8, '9': 7, '8': 6, '7': 5, '6': 4, '5': 3, '4': 2, '3': 1, '2': 0}
     y = 0.9
     e = 1 - y
-    max_replay_size = 30
+    max_replay_size = 25
     my_starting_stack = 10000
     opp_starting_stack = 10000
     starting_stack = 10000
