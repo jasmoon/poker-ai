@@ -29,7 +29,8 @@ class Group18Player(BasePokerPlayer):
             input_position = Input(shape=(1,),name="position_input")
 
             x1 = Conv2D(32,(2,2),activation='relu')(input_cards)
-            x2 = Conv2D(32,(2,2),activation='relu')(input_actions)
+            x2 = Conv2D(32,(1,1),activation='relu')(input_actions)
+            x2 = Conv2D(32,(2,2),activation='relu')(x2)
             x3 = Dense(1,activation='relu')(input_position)
 
             d1 = Dense(128,activation='relu')(x1)
@@ -46,7 +47,7 @@ class Group18Player(BasePokerPlayer):
 
             model = Model(inputs=[input_cards, input_actions,input_position], outputs=out)
             if self.vvh == 0:
-                model.load_weights('setup/training_weights.h5', by_name=True)
+                model.load_weights('add4max30_2000_smarthonest.h5', by_name=True)
 
             model.compile(optimizer='rmsprop', loss='mse')
 
@@ -58,7 +59,8 @@ class Group18Player(BasePokerPlayer):
             input_position = Input(shape=(1,),name="position_input")
 
             x1 = Conv2D(32,(2,2),activation='relu', kernel_initializer="random_uniform")(input_cards)
-            x2 = Conv2D(32,(2,2),activation='relu', kernel_initializer="random_uniform")(input_actions)
+            x2 = Conv2D(32,(1,1),activation='relu', kernel_initializer="random_uniform")(input_actions)
+            x2 = Conv2D(32,(2,2),activation='relu', kernel_initializer="random_uniform")(x2)
             x3 = Dense(1,activation='relu', kernel_initializer="random_uniform")(input_position)
 
             d1 = Dense(128,activation='relu', kernel_initializer="random_uniform")(x1)
@@ -86,7 +88,7 @@ class Group18Player(BasePokerPlayer):
         self.prev_round_features = []
         self.prev_reward_state = []
         self.has_played = False
-        self.model = keras_model_random_initialise()
+        self.model = keras_model()
         self.target_Q = [[0, 0, 0]]
 
     def declare_action(self, valid_actions, hole_card, round_state):
