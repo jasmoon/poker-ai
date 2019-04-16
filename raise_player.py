@@ -98,8 +98,8 @@ class Group18Player(BasePokerPlayer):
             return Group18Player.suits[suit]
 
         def get_card_y(card):
-            small_or_big_blind_turn = card[1]
-            return Group18Player.ranks[small_or_big_blind_turn]
+            rank = card[1]
+            return Group18Player.ranks[rank]
 
         def get_street_grid(cards):
             grid = np.zeros((4,13))
