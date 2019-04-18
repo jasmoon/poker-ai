@@ -29,8 +29,7 @@ class Group18Player(BasePokerPlayer):
             input_position = Input(shape=(1,),name="position_input")
 
             x1 = Conv2D(32,(2,2),activation='relu')(input_cards)
-            x2 = Conv2D(32,(1,1),activation='relu')(input_actions)
-            x2 = Conv2D(32,(2,2),activation='relu')(x2)
+            x2 = Conv2D(32,(2,2),activation='relu')(input_actions)
             x3 = Dense(1,activation='relu')(input_position)
 
             d1 = Dense(128,activation='relu')(x1)
@@ -59,8 +58,7 @@ class Group18Player(BasePokerPlayer):
             input_position = Input(shape=(1,),name="position_input")
 
             x1 = Conv2D(32,(2,2),activation='relu', kernel_initializer="random_uniform")(input_cards)
-            x2 = Conv2D(32,(1,1),activation='relu', kernel_initializer="random_uniform")(input_actions)
-            x2 = Conv2D(32,(2,2),activation='relu', kernel_initializer="random_uniform")(x2)
+            x2 = Conv2D(32,(2,2),activation='relu', kernel_initializer="random_uniform")(input_actions)
             x3 = Dense(1,activation='relu', kernel_initializer="random_uniform")(input_position)
 
             d1 = Dense(128,activation='relu', kernel_initializer="random_uniform")(x1)
