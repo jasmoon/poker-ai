@@ -46,7 +46,7 @@ class Group18Player(BasePokerPlayer):
 
             model = Model(inputs=[input_cards, input_actions,input_position], outputs=out)
             if self.vvh == 0:
-                model.load_weights('Group18.h5', by_name=True)
+                model.load_weights('setup/add3_1750_smarthonest_3000-_aggressivefish.h5', by_name=True)
 
             model.compile(optimizer='rmsprop', loss='mse')
 
